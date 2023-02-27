@@ -49,7 +49,7 @@ public class ShopItem
     public ShopItemID itemId;
     public string itemName;
     public string itemDescription;
-    public long itemCost;
+    public float itemCost;
     public bool itemPurchased;
     public long amountPurchased;
 
@@ -101,7 +101,7 @@ public class ShopInventory
             new ShopItem(ShopItemID.WormholeGenerator,       "Wormhole Generator",           "Open up new pathways to the universe with this amazing generator and achieve massive number gains by traveling to new and exotic locations.",                                                                                  1000000000000000,       false, 0),
             new ShopItem(ShopItemID.ChronoAccelerator,       "Chrono Accelerator",           "This incredible device accelerates time itself, allowing you to achieve massive number gains in the blink of an eye.",                                                                                                         5000000000000000,       false, 0),
             new ShopItem(ShopItemID.InfinityShard,           "Infinity Shard",               "This rare and powerful shard contains the essence of infinity, allowing you to tap into its limitless power and achieve massive number gains beyond comprehension.",                                                           10000000000000000,      false, 0),
-            new ShopItem(ShopItemID.CosmicSingularity,        "Cosmic Singularity",           "Harness the power of a cosmic singularity with this amazing device and achieve massive number gains on a scale that few can imagine.",                                                                                        50000000000000000,      false, 0),
+            new ShopItem(ShopItemID.CosmicSingularity,       "Cosmic Singularity",           "Harness the power of a cosmic singularity with this amazing device and achieve massive number gains on a scale that few can imagine.",                                                                                        50000000000000000,      false, 0),
             new ShopItem(ShopItemID.QuantumBlackHole,        "Quantum Black Hole",           "Create a quantum black hole with this incredible device and tap into the immense power of the universe to achieve massive number gains beyond belief.",                                                                        100000000000000000,     false, 0),
             new ShopItem(ShopItemID.CelestialAmplifier,      "Celestial Amplifier",          "This amazing amplifier harnesses the power of the stars and celestial bodies to amplify your number gains to incredible levels.",                                                                                              500000000000000000,     false, 0),
             new ShopItem(ShopItemID.InfinityClicker,         "Infinity Clicker",             "With this ultimate clicker, you can achieve infinite power and gain massive numbers beyond the limits of human comprehension.",                                                                                                1000000000000000000,    false, 0)
@@ -112,40 +112,89 @@ public class ShopInventory
 public class GameController : MonoBehaviour
 {
     [SerializeField] private TMP_Text scoreTxt;
-    [SerializeField] private float currentScore;
-    [SerializeField] private float hitPower;
-    [SerializeField] private float sips; //ScoreIncreasePerSecond
-    [SerializeField] private float x;
+    [SerializeField] public float currentScore = 0;
+    [SerializeField] public float hitPower = 1f;
+    [SerializeField] private float sips = 0f; //ScoreIncreasePerSecond
+    [SerializeField] public float cps = 0f; //ClicksPerSecond
+
+    [SerializeField] private float saveTimer = 15f;
 
     [SerializeField] public ShopInventory shopInventory = new ShopInventory();
-
+    [SerializeField] private GameObject PauseMenu;
     [SerializeField] private TMP_Text[] shopItemTxts = new TMP_Text[33];
     [SerializeField] private Button[] shopItemBtns = new Button[33];
     [SerializeField] private TMP_Text[] shopItemCostTxts = new TMP_Text[33];
 
+    public void Save()
+    {
+        SaveSystem.Save(this);
+        Debug.Log("Game Saved");
+    }
+    public void Load()
+    {
+        PlayerData data = SaveSystem.Load();
+        currentScore = data.score;
+        hitPower = data.hitPower;
+        cps = data.cps;
+        for (int i = 0; i < shopInventory.shopItems.Count; i++)
+        {
+            shopInventory.shopItems[i].itemPurchased = data.itemPurchased[i];
+            shopInventory.shopItems[i].amountPurchased = data.amountPurchased[i];
+            shopInventory.shopItems[i].itemCost = data.itemCost[i];
+        }
+        UpdateShopItemTexts();
+        ShopUnlockUpdate();
+        UpdateUpgrades();
+    }
 
     void Start()
-    {
-        currentScore = 0f;
-        hitPower = 1f;
-        sips =  1f;
-        x = 0;
-        
+    {    
+        Load();
         UpdateShopItemTexts();
-        
+        ShopUnlockUpdate();
+        UpdateUpgrades();
     }
 
     void Update()
     {
-        scoreTxt.text = (int)currentScore + "";
-        sips = x * Time.deltaTime;
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            PauseMenu.SetActive(!PauseMenu.gameObject.activeSelf);
+        }
+    }
+    void FixedUpdate()
+    {
+        if(currentScore < 10000000)
+        {
+            scoreTxt.text = (int)currentScore + "";
+        }
+        else if(currentScore >= 10000000 && currentScore < 1000000000)
+        {
+            scoreTxt.text = (int)currentScore / 1000 + "K";
+        }
+        else if(currentScore >= 1000000000 && currentScore < 1000000000000)
+        {
+            scoreTxt.text = (int)currentScore / 1000000 + "M";
+        }
+        sips = cps * Time.fixedDeltaTime;
         currentScore += sips;
+
+        if(saveTimer <= 0)
+        {
+            Save();
+            saveTimer = 15f;
+        }
+        else
+        {
+            saveTimer -= Time.fixedDeltaTime;
+        }
 
     }
 
     public void Hit()
     {
         currentScore += hitPower;
+        
     }
 
     private void UpdateShopItemTexts()
@@ -156,7 +205,7 @@ public class GameController : MonoBehaviour
         }
         for(int i = 0; i < shopItemCostTxts.Length; i++)
         {
-            shopItemCostTxts[i].text = shopInventory.shopItems[i].itemCost + "";
+            shopItemCostTxts[i].text = Math.Truncate(shopInventory.shopItems[i].itemCost) + "";
         }
     }
     public void BuyItem(int itemIndex)
@@ -164,10 +213,12 @@ public class GameController : MonoBehaviour
         if (currentScore >= shopInventory.shopItems[itemIndex].itemCost)
         {
             currentScore -= shopInventory.shopItems[itemIndex].itemCost;
-            shopInventory.shopItems[itemIndex].itemCost *= 2;
+            shopInventory.shopItems[itemIndex].itemCost *= 1.2f;
             shopInventory.shopItems[itemIndex].itemPurchased = true;
+            shopInventory.shopItems[itemIndex].amountPurchased += 1;
             UpdateShopItemTexts();
             ShopUnlockUpdate();
+            UpdateUpgrades();
         }
     }
     public void ShopUnlockUpdate()
@@ -183,4 +234,142 @@ public class GameController : MonoBehaviour
             }
         }
     }
+    private void UpdateUpgrades()
+    {
+        hitPower = 1;
+        cps = 0;
+
+        for(int i = 0; i < shopInventory.shopItems.Count; i++)
+        {
+            switch(i)
+            {
+                case 0: //PowerClicker
+                    hitPower =  hitPower + (1 * shopInventory.shopItems[0].amountPurchased);
+                    break;
+                case 1: //AutoClicker
+                    cps = cps + (1 * shopInventory.shopItems[1].amountPurchased);
+                    break;
+                case 2: //MultiClicker
+                    if(shopInventory.shopItems[2].itemPurchased)
+                        hitPower *= 1.2f * shopInventory.shopItems[2].amountPurchased;
+                    break;
+                case 3: //TimeWarper
+                    if(shopInventory.shopItems[3].itemPurchased)
+                        cps *= 1.5f * shopInventory.shopItems[3].amountPurchased;
+                    break;
+                case 4: //OfflineClicker
+                    //function here
+                    break;
+                case 5: //RandomClicker
+                    if(shopInventory.shopItems[5].itemPurchased)
+                        RandomClick();
+                    break;
+                case 6: //GoldenClicker
+                    //run GoldClicker function for 10 seconds then stop
+                    if(shopInventory.shopItems[6].itemPurchased)
+                    {
+                        StartCoroutine(GoldenClick());
+                    }
+                    break;
+                case 7: //NumberGenerator
+                    if(shopInventory.shopItems[7].itemPurchased)
+                        cps *= 10f * shopInventory.shopItems[7].amountPurchased;
+                    break;
+                case 8: //MagicCrystal
+                    //function here
+                    break;
+                case 9: //ExoplanetaryBeacon
+                    //function here
+                    break;
+                case 10: //NeuralNetworkInterface
+                    //function here
+                    break;
+                case 11: //EldritchMagic
+                    //function here
+                    break;
+                case 12: //TimeDilation
+                    //function here
+                    break;
+                case 13: //UnicornHorn
+                    //function here
+                    break;
+                case 14: //LeviathanScale
+                    //function here
+                    break;
+                case 15: //CosmicRayAmplifier
+                    //function here
+                    break;
+                case 16: //Plasma Crystal
+                    //function here
+                    break;
+                case 17: //QuantumClicker
+                    //function here
+                    break;
+                case 18: //Necronomicon
+                    //function here
+                    break;
+                case 19: //TimeMachine
+                    //function here
+                    break;
+                case 20: //DarkMatterAmulet
+                    //function here
+                    break;
+                case 21: //HyperdriveClicker
+                    //function here
+                    break;
+                case 22: //NeuralNexusAmplifier
+                    //function here
+                    break;
+                case 23: //VoidSiphon
+                    //function here
+                    break;
+                case 24: //ElementalCatalyst
+                    //function here
+                    break;
+                case 25: //ExpontentialClicker
+                    //function here
+                    break;
+                case 26: //WormholeGenerator
+                    //function here
+                    break;
+                case 27: //ChronoAccelerator
+                    //function here
+                    break;
+                case 28: //InfinityShard
+                    //function here
+                    break;
+                case 29: //CosmicSingularity
+                    //function here
+                    break;  
+                case 30: //QuantumBlackHole
+                    //function here
+                    break;
+                case 31: //SelestialAmplifier
+                    //function here
+                    break;
+                case 32: //InfinityClicker
+                    //function here
+                    break;
+
+
+            }
+        }
+        
+    }
+
+    private void RandomClick()
+    {
+        hitPower += UnityEngine.Random.Range(0, 10) * shopInventory.shopItems[5].amountPurchased;
+    }
+    private IEnumerator GoldenClick()
+    {
+        hitPower *= 50f * shopInventory.shopItems[6].amountPurchased;
+        yield return new WaitForSeconds(10);
+        hitPower /= 50f * shopInventory.shopItems[6].amountPurchased;
+    }
+
 }
+    
+
+
+
