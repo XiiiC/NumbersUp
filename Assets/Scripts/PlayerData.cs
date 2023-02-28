@@ -5,10 +5,14 @@ using UnityEngine;
 [System.Serializable]
 public class PlayerData 
 {
+    //general
+    public double time;
+
     //stats
     public float score;
     public float hitPower;
     public float cps;
+    public float offlineMultiplier;
 
     //shop
     public bool[] itemPurchased;
@@ -17,6 +21,8 @@ public class PlayerData
 
     public PlayerData (GameController gameController)
     {
+        time = gameController.saveTime;
+        offlineMultiplier = gameController.offlineMultiplier;
         score = gameController.currentScore;
         hitPower = gameController.hitPower;
         cps = gameController.cps;

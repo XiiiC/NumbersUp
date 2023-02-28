@@ -116,7 +116,10 @@ public class GameController : MonoBehaviour
     [SerializeField] public float hitPower = 1f;
     [SerializeField] private float sips = 0f; //ScoreIncreasePerSecond
     [SerializeField] public float cps = 0f; //ClicksPerSecond
-
+    [SerializeField] public float offlineMultiplier = 0.05f;
+    [SerializeField] private float offlineScore;
+    public double saveTime;
+    public double loadTime;
     [SerializeField] private float saveTimer = 15f;
 
     [SerializeField] public ShopInventory shopInventory = new ShopInventory();
@@ -127,25 +130,39 @@ public class GameController : MonoBehaviour
 
     public void Save()
     {
+        DateTime now = DateTime.Now;
+        saveTime = (now - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+
         SaveSystem.Save(this);
         Debug.Log("Game Saved");
     }
     public void Load()
     {
+        DateTime now = DateTime.Now;
         PlayerData data = SaveSystem.Load();
+
         currentScore = data.score;
         hitPower = data.hitPower;
         cps = data.cps;
+        saveTime = data.time;
+        
+        loadTime = (now - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+
         for (int i = 0; i < shopInventory.shopItems.Count; i++)
         {
             shopInventory.shopItems[i].itemPurchased = data.itemPurchased[i];
             shopInventory.shopItems[i].amountPurchased = data.amountPurchased[i];
             shopInventory.shopItems[i].itemCost = data.itemCost[i];
         }
+
+        offlineScore = (float)(loadTime - saveTime) * sips * offlineMultiplier;
+        currentScore += offlineScore;
+
         UpdateShopItemTexts();
         ShopUnlockUpdate();
         UpdateUpgrades();
     }
+
 
     void Start()
     {    
@@ -258,7 +275,8 @@ public class GameController : MonoBehaviour
                         cps *= 1.5f * shopInventory.shopItems[3].amountPurchased;
                     break;
                 case 4: //OfflineClicker
-                    //function here
+                    if(shopInventory.shopItems[4].itemPurchased)
+                        offlineMultiplier *= shopInventory.shopItems[4].amountPurchased;
                     break;
                 case 5: //RandomClicker
                     if(shopInventory.shopItems[5].itemPurchased)
@@ -273,58 +291,75 @@ public class GameController : MonoBehaviour
                     break;
                 case 7: //NumberGenerator
                     if(shopInventory.shopItems[7].itemPurchased)
-                        cps *= 10f * shopInventory.shopItems[7].amountPurchased;
+                        cps *= 5f * shopInventory.shopItems[7].amountPurchased;
                     break;
                 case 8: //MagicCrystal
-                    //function here
+                    if(shopInventory.shopItems[8].itemPurchased)
+                        hitPower += 10f * shopInventory.shopItems[8].amountPurchased;
                     break;
                 case 9: //ExoplanetaryBeacon
-                    //function here
+                     if(shopInventory.shopItems[9].itemPurchased)
+                        cps += 20f * shopInventory.shopItems[9].amountPurchased;
                     break;
                 case 10: //NeuralNetworkInterface
-                    //function here
+                    if(shopInventory.shopItems[10].itemPurchased)
+                        hitPower += 200f * shopInventory.shopItems[10].amountPurchased;
                     break;
                 case 11: //EldritchMagic
-                    //function here
+                    if(shopInventory.shopItems[11].itemPurchased)
+                        hitPower += 50f * shopInventory.shopItems[11].amountPurchased;
                     break;
                 case 12: //TimeDilation
-                    //function here
+                    if(shopInventory.shopItems[12].itemPurchased)
+                        cps += 50f * shopInventory.shopItems[12].amountPurchased;
                     break;
                 case 13: //UnicornHorn
-                    //function here
+                    if(shopInventory.shopItems[13].itemPurchased)
+                        hitPower += 100f * shopInventory.shopItems[13].amountPurchased;
                     break;
                 case 14: //LeviathanScale
-                    //function here
+                    if(shopInventory.shopItems[14].itemPurchased)
+                        hitPower += 150f * shopInventory.shopItems[14].amountPurchased;
                     break;
                 case 15: //CosmicRayAmplifier
-                    //function here
+                    if(shopInventory.shopItems[15].itemPurchased)
+                        cps += 100f * shopInventory.shopItems[15].amountPurchased;
                     break;
                 case 16: //Plasma Crystal
-                    //function here
+                    if(shopInventory.shopItems[16].itemPurchased)
+                        hitPower *= 5f * shopInventory.shopItems[16].amountPurchased;
                     break;
                 case 17: //QuantumClicker
-                    //function here
+                    if(shopInventory.shopItems[17].itemPurchased)
+                        hitPower *= 10f * shopInventory.shopItems[17].amountPurchased;
                     break;
                 case 18: //Necronomicon
-                    //function here
+                    if(shopInventory.shopItems[18].itemPurchased)
+                        cps *= 10f * shopInventory.shopItems[18].amountPurchased;
                     break;
                 case 19: //TimeMachine
-                    //function here
+                    if(shopInventory.shopItems[19].itemPurchased)
+                       cps *= 15f * shopInventory.shopItems[19].amountPurchased;
                     break;
                 case 20: //DarkMatterAmulet
-                    //function here
+                    if(shopInventory.shopItems[20].itemPurchased)
+                        hitPower *= 20f * shopInventory.shopItems[20].amountPurchased;
                     break;
                 case 21: //HyperdriveClicker
-                    //function here
+                    if(shopInventory.shopItems[21].itemPurchased)
+                        hitPower *= 25f * shopInventory.shopItems[21].amountPurchased;
                     break;
                 case 22: //NeuralNexusAmplifier
-                    //function here
+                    if(shopInventory.shopItems[22].itemPurchased)
+                        cps *= 20f * shopInventory.shopItems[22].amountPurchased;
                     break;
                 case 23: //VoidSiphon
-                    //function here
+                    if(shopInventory.shopItems[23].itemPurchased)
+                        hitPower *= 50f * shopInventory.shopItems[23].amountPurchased;
                     break;
                 case 24: //ElementalCatalyst
-                    //function here
+                    if(shopInventory.shopItems[24].itemPurchased)
+                        cps *= 50f * shopInventory.shopItems[24].amountPurchased;
                     break;
                 case 25: //ExpontentialClicker
                     //function here
